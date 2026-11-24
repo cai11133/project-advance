@@ -1,6 +1,6 @@
 # project-advance
 
-一个用 GitHub Issue 和 Pull Request 管理正式开发的 Codex Skill。你只需要说想推进什么，它先核对项目的实际状态，再决定从哪一步开始，并在每一步划清“可以直接做”和“必须先问你”的边界。
+一个用本地任务单或 GitHub Issue 推进项目的 Codex Skill。你只需要说想推进什么，它先核对项目的实际状态，再决定从哪一步开始，并在每一步划清“可以直接做”和“必须先问你”的边界。
 
 > 本 Skill 按 Codex 编写，指令为中文。用于其他 Agent 前需要自行调整。
 
@@ -9,10 +9,10 @@
 | 阶段 | 做法 |
 | --- | --- |
 | 开始 | 核对工作环境、仓库、分支和 GitHub 状态，再用三句话复述项目背景、当前进度和本次任务。 |
-| 定位任务 | 用任务名、当前分支和 PR 找到对应 Issue。有多个候选时列出标题让你选。 |
-| 开发与验收 | 先有 Issue 再开工，逐条记录验收结果（通过、失败、未验证）和证据。 |
+| 定位任务 | 用项目文件、任务单、分支或 PR 定位当前任务。有多个候选时列出标题让你选。 |
+| 开发与验收 | 新需求先确认任务单和验收；按选定路径使用本地记录或 Issue。 |
 | 提交 | PR 写明范围和验收结果。指向默认分支时，用 `Closes #编号` 关联同仓库 Issue。 |
-| 收口 | 合并前按授权勾选 Issue 的验收清单，合并后核实 PR 与 Issue 的实际状态。 |
+| 收口 | 先同步 Checklist、验收证据和四行交接；合并前按授权更新 Issue 验收清单。 |
 | 发布与部署 | 发版和部署分别确认、分别验证，部署前核对备份和回滚方案。 |
 | 汇报 | 常规汇报给出改动、验证、未验证项和下一步。需要你决定时，一次给齐背景、进度、卡点、方案、推荐和待决事项。 |
 
@@ -37,27 +37,29 @@
 | --- | --- |
 | [SKILL.md](SKILL.md) | 触发范围、授权规则、开工、验收、收口和汇报的主流程 |
 | [references/release-and-deploy.md](references/release-and-deploy.md) | 发布版本和部署的详细流程，主文件按需引用 |
+| [references/project-templates.md](references/project-templates.md) | 项目文件标准、模板、GitHub 转接和规划工具 |
 | [LICENSE](LICENSE) | MIT 许可证 |
 
 ## 安装
 
-把两份文件放到 Codex 的用户 Skill 目录，保持 `references/` 的相对路径。以下命令用于首次安装。 [Codex Skill 目录说明](https://learn.chatgpt.com/docs/build-skills#where-codex-loads-local-skills)
+首次安装时选择一个 Codex 用户 Skill 目录。以下示例使用官方默认位置；已有运行副本时，先确认 Codex 使用的目录，再按版本同步。 [Codex Skill 目录说明](https://learn.chatgpt.com/docs/build-skills#where-codex-loads-local-skills)
 
 ```bash
-git clone https://github.com/cai11133/project-advance.git
-mkdir -p "$HOME/.agents/skills/project-advance/references"
-cp project-advance/SKILL.md "$HOME/.agents/skills/project-advance/SKILL.md"
-cp project-advance/references/release-and-deploy.md "$HOME/.agents/skills/project-advance/references/release-and-deploy.md"
+git clone https://github.com/cai11133/project-advance.git &&
+skill_install="${SKILL_INSTALL_DIR:-$HOME/.agents/skills/project-advance}" &&
+test ! -e "$skill_install" && test ! -L "$skill_install" &&
+mkdir -p "$skill_install" &&
+cp -R project-advance/SKILL.md project-advance/references "$skill_install/"
 ```
 
-之后在新的 Codex 会话里说“继续做 XX 项目”或“推进这个项目的 Issue”。Codex 可以按描述选择该 Skill。在 Codex CLI 中也可用 `$project-advance` 显式调用。
+新会话可以说「我想做个证照到期提醒」「把这个旧项目接进来」或「继续」。Skill 会先定位资料和任务，说明这次交付、验收与预计停点。Codex CLI 也可用 `$project-advance` 显式调用。
 
 ## 前提与适用范围
 
 - 操作 GitHub 时，需要 GitHub 账号和已登录的 `gh` 命令行（`gh auth status` 能通过）。
-- 正式开发流程以 GitHub Issue、Milestone 和 PR 为核心。项目尚未接入 GitHub 时，可以先做只读盘点和拟定任务草稿。
+- 新项目可按获批任务单在本地开工，默认记录在 `tasks/`；使用 GitHub 时以 Issue 跟踪任务。转接后继续维护一份主记录。
 - `references/release-and-deploy.md` 为 macOS 新项目提供默认方案，使用 `launchd` 管理服务，默认监听 `127.0.0.1`。其他环境按项目约定安排。
-- 分支名未约定时使用 `codex/<Issue编号>-<英文短名>`，可在项目的 `AGENTS.md` 里指定其他前缀。
+- GitHub 路径的分支名未约定时使用 `codex/<Issue编号>-<英文短名>`，可在项目的 `AGENTS.md` 里指定其他前缀。
 
 ## 验证状态
 
