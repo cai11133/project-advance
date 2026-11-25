@@ -21,6 +21,7 @@ commit=$(git -C "$repo" rev-parse --verify --end-of-options "${1:-HEAD}^{commit}
 agents="$HOME/.agents/skills/project-advance"
 codex="$HOME/.codex/skills/project-advance"
 lock="$HOME/.agents/.project-advance-install.lock"
+recovery="$lock/recovery"
 work=
 target=
 
@@ -31,19 +32,26 @@ cleanup() {
     if [[ -d "$work/previous" ]] && ! exists "$target"; then
       if ! mv "$work/previous" "$target"; then
         printf '自动恢复失败，旧版仍在 %s\n' "$work/previous" >&2
-        status=1
+        exit 1
       fi
     fi
     if [[ ! -d "$work/previous" ]]; then
       rm -rf "$work"
     fi
   fi
+  rm -f "$recovery"
   rmdir "$lock"
   exit "$status"
 }
 
 mkdir -p "$HOME/.agents"
-mkdir "$lock" 2>/dev/null || fail "安装锁不可用：$lock。检查是否正在安装，或按 README 恢复。"
+if ! mkdir "$lock" 2>/dev/null; then
+  if [[ -f "$recovery" ]]; then
+    printf '本次切换的恢复记录（提交、目标、备份）：\n' >&2
+    cat "$recovery" >&2
+  fi
+  fail "安装锁不可用：${lock}。确认安装已停止后，按 README 的恢复步骤处理。"
+fi
 trap cleanup EXIT
 trap 'exit 129' HUP
 trap 'exit 130' INT
@@ -97,6 +105,8 @@ done
 (cd "$work/next" && shasum -a 256 -c "$work/sha256")
 
 if exists "$target"; then
+  # 保留在本次锁内，先写全路径，再移动旧版。
+  printf '%s\n' "$commit" "$target" "$work/previous" > "$recovery"
   printf '旧版备份位置：%s\n' "$work/previous"
   mv "$target" "$work/previous"
 fi
