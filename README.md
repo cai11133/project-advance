@@ -65,7 +65,36 @@ bash scripts/install.sh
 
 脚本在 Codex 技能扫描目录外组装文件，并根据 Git 原文逐一校验 SHA-256。校验通过后才切换目录，旧版保存在脚本显示的备份位置。备份含原目录中的本地文件，按需取回。升级后可在新 Codex 会话确认只发现一份 Skill。
 
-切换使用同一文件系统内的两次目录移动。遇到普通错误或可捕获的中断时，脚本尝试恢复旧版。若强制终止或断电，先检查目标目录。目标缺失且有 `previous` 备份时，把备份目录整体移回原路径。确认没有安装进程运行后，用 `rmdir ~/.agents/.project-advance-install.lock` 清除遗留的空锁目录，再重试。
+切换使用同一文件系统内的两次目录移动。普通错误或可捕获的中断会触发自动恢复。若中断后重试提示安装锁不可用，先确认原来的安装进程已停止。锁内的恢复记录会在重试时显示，即使原终端已经关闭。
+
+如果目标缺失，运行下面的命令恢复旧版。存在目标目录、文件或符号链接时，命令会停下并保留备份和锁。
+
+```bash
+(
+  set -e
+  lock="$HOME/.agents/.project-advance-install.lock"
+  record="$lock/recovery"
+  {
+    IFS= read -r commit
+    IFS= read -r target
+    IFS= read -r backup
+  } < "$record"
+  if [ -e "$target" ] || [ -L "$target" ]; then
+    printf '目标已存在，已保留备份：%s\n' "$backup" >&2
+    exit 1
+  fi
+  [ -d "$backup" ] && [ -f "$backup/SKILL.md" ] || {
+    printf '没有找到可恢复的备份：%s\n' "$backup" >&2
+    exit 1
+  }
+  mv "$backup" "$target"
+  rm "$record"
+  rmdir "$lock"
+  printf '已恢复至 %s\n' "$target"
+)
+```
+
+目标已存在时，先确认那里是完整可用的 Skill，保留扫描目录外的旧版备份。确认后删除锁内的 `recovery` 文件，再用 `rmdir ~/.agents/.project-advance-install.lock` 移除空锁。若锁内没有恢复记录且尚未开始移动旧版，确认安装进程已停止后可直接移除空锁。目标缺失且找不到恢复记录时，先查原终端输出中的备份位置，确认旧版位置后再继续。
 
 ## 前提与适用范围
 
