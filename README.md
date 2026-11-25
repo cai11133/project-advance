@@ -112,6 +112,7 @@ bash scripts/install.sh
 | 一次性单词纠错只修改指定文件 | `367f3d2` | macOS Codex CLI | 1 |
 | 首装、升级、两处同时存在、故障注入和恢复 | `0.2.0` | macOS 隔离目录 | 13 个场景各 1 次 |
 | 新装和两种原路径升级后，Codex 各发现一份完整 Skill | `0.2.0` | macOS Codex CLI | 3 |
+| 旧项目接入的环境与任务记录选择卡片。桌面端收到实际答复后继续，Codex Cloud 显式加载试改版后收到实际答复并展示 Issue 草稿 | `0.2.0` 试改版 | macOS Codex 桌面端、Codex Cloud | 各 1 次 |
 
 待验证：Codex 桌面与云端的完整流程、Linux 与 Windows 上的实际安装和部署、远程仓库里只说“继续”后的候选定位，以及长期运行、开机自启、定时备份和故障回滚。
 
