@@ -3,8 +3,6 @@
 一个用本地任务单或 GitHub Issue 推进项目的 Codex Skill。你只需要说想推进什么，它先核对项目的实际状态，再决定从哪一步开始，并在每一步划清“可以直接做”和“必须先问你”的边界。
 
 > 本 Skill 按 Codex 编写，指令为中文。用于其他 Agent 前需要自行调整。
->
-> 本分支在上游提交 `c1d72db5e6c6` 的基础上做了以下修改（2026-11-25）：收紧触发范围、去掉 Codex 专有写法、部署按操作系统分支、补充示例和加固项，这些修改尚未做行为实测。修改前的原版即主分支，修改内容见本分支相对主分支的差异。
 
 ## 它做什么
 
@@ -37,6 +35,7 @@
 
 | 文件 | 内容 |
 | --- | --- |
+| [scripts/install.sh](scripts/install.sh) | 首次安装、升级和完整性校验 |
 | [SKILL.md](SKILL.md) | 触发范围、授权规则、开工、验收、收口和汇报的主流程 |
 | [references/release-and-deploy.md](references/release-and-deploy.md) | 发布版本和部署的详细流程，主文件按需引用 |
 | [references/project-templates.md](references/project-templates.md) | 项目文件标准、模板、GitHub 转接和规划工具 |
@@ -45,17 +44,28 @@
 
 ## 安装
 
-首次安装时选择一个 Codex 用户 Skill 目录。以下示例使用官方默认位置；已有运行副本时，先确认 Codex 使用的目录，再按版本同步。 [Codex Skill 目录说明](https://learn.chatgpt.com/docs/build-skills#where-codex-loads-local-skills)
+安装脚本使用 Bash、Git 和 `shasum`。首次安装默认放在 `~/.agents/skills/project-advance`。脚本会同时检查这个位置和 `~/.codex/skills/project-advance`，只有一份就沿用原路径。两处都存在时，先用 Codex 确认可用副本，把另一份移出技能目录再重试。[Codex Skill 目录说明](https://learn.chatgpt.com/docs/build-skills#where-codex-loads-local-skills)
 
 ```bash
 git clone https://github.com/cai11133/project-advance.git &&
-skill_install="${SKILL_INSTALL_DIR:-$HOME/.agents/skills/project-advance}" &&
-test ! -e "$skill_install" && test ! -L "$skill_install" &&
-mkdir -p "$skill_install" &&
-cp -R project-advance/SKILL.md project-advance/GLOSSARY.md project-advance/references "$skill_install/"
+cd project-advance &&
+bash scripts/install.sh
 ```
 
 新会话可以说「我想做个证照到期提醒」「把这个旧项目接进来」或「继续」。Skill 会先定位资料和任务，说明这次交付、验收与预计停点。Codex CLI 也可用 `$project-advance` 显式调用。
+
+## 升级
+
+在已克隆的仓库目录运行。脚本默认安装当前 Git 提交，也可以运行 `bash scripts/install.sh <提交>` 安装指定版本。
+
+```bash
+git pull --ff-only &&
+bash scripts/install.sh
+```
+
+脚本在 Codex 技能扫描目录外组装文件，并根据 Git 原文逐一校验 SHA-256。校验通过后才切换目录，旧版保存在脚本显示的备份位置。备份含原目录中的本地文件，按需取回。升级后可在新 Codex 会话确认只发现一份 Skill。
+
+切换使用同一文件系统内的两次目录移动。遇到普通错误或可捕获的中断时，脚本尝试恢复旧版。若强制终止或断电，先检查目标目录。目标缺失且有 `previous` 备份时，把备份目录整体移回原路径。确认没有安装进程运行后，用 `rmdir ~/.agents/.project-advance-install.lock` 清除遗留的空锁目录，再重试。
 
 ## 前提与适用范围
 
@@ -66,13 +76,15 @@ cp -R project-advance/SKILL.md project-advance/GLOSSARY.md project-advance/refer
 
 ## 验证状态
 
-| 已验证 | 未验证 |
-| --- | --- |
-| 在 macOS 上，用 Codex CLI 完成了从 Issue、分支、PR 到合并、发布 `v0.1.0` 的一次小型项目交付。 | Codex 桌面入口的全部场景。 |
-| 本地无远程的项目中，新 CLI 会话只说“继续”时，能读项目文件、核对分支、列出候选并等用户选择。 | 配有 GitHub 远程时，只说“继续”后列出候选 Issue 和 PR 的完整路径。 |
-| 必需验收项失败时，Issue 对应项留空、写明失败原因并停在合并前。修复后更新清单，合并后 Issue 自动关闭。 | Windows 上的浏览器和脚本表现。 |
-| 实际合并中，Issue 清单写入未获批时停下来确认，获批后才更新清单并继续合并。 | 新会话中的同一授权边界专项复测。 |
-| 从已发布版本取出文件，在本机临时部署并通过 HTTP 验证。 | 长期运行、开机自启、定时备份和故障回滚。 |
+| 验证内容 | 版本 | 平台 | 有记录的次数 |
+| --- | --- | --- | --- |
+| 新需求先读模板，出任务单草稿并等待开工 | `367f3d2` | macOS Codex CLI | 2 |
+| 新会话说“继续”，找到已有本地任务单 | `367f3d2` | macOS Codex CLI | 1 |
+| 一次性单词纠错只修改指定文件 | `367f3d2` | macOS Codex CLI | 1 |
+| 首装、升级、两处同时存在、故障注入和恢复 | `0.2.0` | macOS 隔离目录 | 13 个场景各 1 次 |
+| 新装和两种原路径升级后，Codex 各发现一份完整 Skill | `0.2.0` | macOS Codex CLI | 3 |
+
+待验证：Codex 桌面与云端的完整流程、Linux 与 Windows 上的实际安装和部署、远程仓库里只说“继续”后的候选定位，以及长期运行、开机自启、定时备份和故障回滚。
 
 ## 贡献
 
