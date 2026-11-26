@@ -3,7 +3,7 @@ name: project-advance
 description: 在项目目录里按流程推进开发工作并留下可验收的记录：新想法立项、把旧项目接入任务单或 Issue、新会话里说“继续”接续未完成的任务、验收收口、发版上线。需要跨多次会话、改动 3 个及以上文件或要留下验收记录时使用。单次问答、代码讲解、一次会话内能完成且不留记录的小改动、只建 Issue 或只改 PR 正文，按普通请求或对应 skill 处理。
 compatibility: GitHub 路径需要 git 和已登录的 gh，其他托管平台沿用项目约定；部署默认面向用户本机。上游只在 macOS 的 Codex CLI 上验证过，Windows、Linux 和其他 Agent 未验证。
 metadata:
-  version: "0.3.2"
+  version: "0.3.3"
 ---
 
 # 项目推进
